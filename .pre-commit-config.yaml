@@ -1,0 +1,53 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-toml
+      - id: check-yaml
+        args:
+          - --unsafe
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+        args:
+          - --py3-plus
+          - --keep-runtime-typing
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.15.21
+    hooks:
+      - id: ruff-check
+        args:
+          - --fix
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: python
+        pass_filenames: false
+      - id: mypy-stubtest
+        name: mypy-stubtest
+        entry: stubtest
+        args:
+          - jaq
+        language: python
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: rust-linting
+        name: Rust linting
+        entry: cargo fmt --all -- --config group_imports=StdExternalCrate,imports_granularity=Module
+        pass_filenames: true
+        types: [rust]
+        language: system
+      - id: rust-clippy
+        name: Rust clippy
+        entry: cargo clippy -- -D warnings -A incomplete_features -W clippy::dbg_macro -W clippy::print_stdout
+        pass_filenames: false
+        types: [rust]
+        language: system
