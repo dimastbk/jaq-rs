@@ -1,0 +1,23 @@
+[package]
+name = "jaq-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dmitriy <dimastbk@proton.me>"]
+license = "MIT"
+description = "Python bindings for jaq, a jq-like JSON processor written in Rust"
+
+[lib]
+name = "_jaq"
+crate-type = ["cdylib"]
+
+[dependencies]
+jaq-all = "0.2"
+num-bigint = "0.4"
+pyo3 = { version = "0.29", features = [
+    "extension-module",
+    "generate-import-lib",
+    "num-bigint",
+] }
+
+[build-dependencies]
+pyo3-build-config = "0.29"

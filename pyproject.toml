@@ -1,0 +1,58 @@
+[project]
+name = "jaq-rs"
+description = "Python bindings for jaq, a jq-like JSON processor written in Rust"
+readme = "README.md"
+authors = [{ name = "Dmitriy", email = "dimastbk@proton.me" }]
+requires-python = ">=3.10"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dynamic = ["version"]
+
+[dependency-groups]
+dev = ["maturin~=1.0", "mypy~=2.1.0", "pre-commit~=4.3", "pytest~=9.0"]
+pyodide-build = ["pyodide-build"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "C",      # flake8-comprehensions
+    "B",      # flake8-bugbear
+    "TID",    # flake8-tidy-imports
+    "T20",    # flake8-print
+    "UP",     # pyupgrade
+    "I",      # isort
+    "LOG",    # flake8-logging
+    "S",      # flake8-bandit
+    "RUF022", # __all__ is not sorted
+    "FA",     # flake8-future-annotations
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["jaq"]
+ignore_missing_imports = false
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[build-system]
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
+
+[tool.maturin]
+module-name = "jaq._jaq"
+python-source = "python"
