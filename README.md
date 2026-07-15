@@ -24,6 +24,19 @@ f.run("1 2 3", text=True)          # [1, 2, 3] — multiple JSON documents
     whitespace-separated JSON documents are each fed to the filter, and their
     outputs are concatenated (like the `jq` CLI over a stream).
 
+### Convenience methods
+
+```python
+f = jaq.compile(".users[].name")
+
+f.first(data)   # first output only; evaluation stops early (lazy).
+                # Raises IndexError if the filter yields no output.
+f.text(data)    # all outputs serialized as JSON, joined by newlines
+                # (like the jq CLI): '"alice"\n"bob"'
+```
+
+Both accept the same `text=` and `vars=` keywords as `run()`.
+
 ### Variables
 
 Declare variable names at compile time and provide their values per run:
