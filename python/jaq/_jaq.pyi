@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import typing
+from collections.abc import Sequence
+from typing import Any, Literal, TypeAlias, final, overload
 
 __all__ = [
     "CompileError",
@@ -11,7 +12,7 @@ __all__ = [
     "compile",
 ]
 
-_JsonValue: typing.TypeAlias = (
+_JsonValue: TypeAlias = (
     None
     | bool
     | int
@@ -20,7 +21,7 @@ _JsonValue: typing.TypeAlias = (
     | bytes
     | list["_JsonValue"]
     | tuple["_JsonValue", ...]
-    | dict[typing.Any, "_JsonValue"]
+    | dict[Any, "_JsonValue"]
 )
 
 class JaqError(Exception): ...
@@ -28,15 +29,24 @@ class CompileError(JaqError): ...
 class ParseError(JaqError): ...
 class ExecutionError(JaqError): ...
 
-@typing.final
+@final
 class Filter:
+    @overload
     def run(
         self,
         input: _JsonValue,
         *,
-        text: bool = False,
+        text: Literal[False] = False,
         vars: dict[str, _JsonValue] | None = None,
-    ) -> list[typing.Any]: ...
+    ) -> list[Any]: ...
+    @overload
+    def run(
+        self,
+        input: str | bytes,
+        *,
+        text: Literal[True],
+        vars: dict[str, _JsonValue] | None = None,
+    ) -> list[Any]: ...
     def __repr__(self) -> str: ...
 
-def compile(code: str, vars: typing.Sequence[str] | None = None) -> Filter: ...
+def compile(code: str, vars: Sequence[str] | None = None) -> Filter: ...
