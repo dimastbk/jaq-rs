@@ -210,3 +210,52 @@ def test_concurrent_runs_share_filter():
     for t in threads:
         t.join()
     assert results == [expected] * 8
+
+
+def test_first_basic():
+    assert jaq.compile(".foo[]").first({"foo": [1, 2, 3]}) == 1
+
+
+def test_first_is_lazy():
+    # would materialize 100M values (or hang) if not lazy
+    assert jaq.compile("range(100000000)").first(None) == 0
+
+
+def test_first_empty_raises():
+    with pytest.raises(IndexError, match="no output"):
+        jaq.compile("empty").first(None)
+
+
+def test_first_text_mode():
+    assert jaq.compile(".").first("1 2 3", text=True) == 1
+
+
+def test_first_with_vars():
+    f = jaq.compile("$x + 1", vars=["x"])
+    assert f.first(None, vars={"x": 41}) == 42
+
+
+def test_first_runtime_error():
+    with pytest.raises(jaq.ExecutionError, match="boom"):
+        jaq.compile('error("boom")').first(None)
+
+
+def test_text_basic():
+    assert jaq.compile(".[]").text([1, "a", None]) == '1\n"a"\nnull'
+
+
+def test_text_compact_json():
+    assert jaq.compile(".").text({"a": [1, 2]}) == '{"a":[1,2]}'
+
+
+def test_text_empty():
+    assert jaq.compile("empty").text(None) == ""
+
+
+def test_text_with_text_input():
+    assert jaq.compile(". + 1").text("1 2", text=True) == "2\n3"
+
+
+def test_text_runtime_error():
+    with pytest.raises(jaq.ExecutionError, match="boom"):
+        jaq.compile('error("boom")').text(None)
