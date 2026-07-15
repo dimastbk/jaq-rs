@@ -47,36 +47,46 @@ pub fn py_to_val(obj: &Bound<'_, PyAny>, depth: usize) -> PyResult<Val> {
     }
 }
 
+/// Borrow wrapper for `Val`, so the foreign `IntoPyObject` trait can be
+/// implemented for the foreign `Val` type (orphan rule). This lets
+/// `PyList::new`/`set_item` convert values lazily, without intermediate
+/// collections.
+pub struct PyVal<'a>(pub &'a Val);
+
+impl<'py> IntoPyObject<'py> for PyVal<'_> {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self.0 {
+            Val::Null => py.None().into_bound(py),
+            Val::Bool(b) => PyBool::new(py, *b).to_owned().into_any(),
+            Val::Num(n) => match n {
+                Num::Int(i) => i.into_pyobject(py)?.into_any(),
+                Num::BigInt(b) => b.as_ref().into_pyobject(py)?.into_any(),
+                Num::Float(f) => f.into_pyobject(py)?.into_any(),
+                // decimals are kept as strings by jaq; expose them as floats
+                Num::Dec(s) => s
+                    .parse::<f64>()
+                    .unwrap_or(f64::NAN)
+                    .into_pyobject(py)?
+                    .into_any(),
+            },
+            Val::TStr(b) => PyString::new(py, &String::from_utf8_lossy(b)).into_any(),
+            Val::BStr(b) => PyBytes::new(py, b).into_any(),
+            Val::Arr(a) => PyList::new(py, a.iter().map(PyVal))?.into_any(),
+            Val::Obj(o) => {
+                let dict = PyDict::new(py);
+                for (k, x) in o.iter() {
+                    dict.set_item(PyVal(k), PyVal(x))?;
+                }
+                dict.into_any()
+            }
+        })
+    }
+}
+
 pub fn val_to_py<'py>(py: Python<'py>, v: &Val) -> PyResult<Bound<'py, PyAny>> {
-    Ok(match v {
-        Val::Null => py.None().into_bound(py),
-        Val::Bool(b) => PyBool::new(py, *b).to_owned().into_any(),
-        Val::Num(n) => match n {
-            Num::Int(i) => i.into_pyobject(py)?.into_any(),
-            Num::BigInt(b) => b.as_ref().into_pyobject(py)?.into_any(),
-            Num::Float(f) => f.into_pyobject(py)?.into_any(),
-            // decimals are kept as strings by jaq; expose them as floats
-            Num::Dec(s) => s
-                .parse::<f64>()
-                .unwrap_or(f64::NAN)
-                .into_pyobject(py)?
-                .into_any(),
-        },
-        Val::TStr(b) => PyString::new(py, &String::from_utf8_lossy(b)).into_any(),
-        Val::BStr(b) => PyBytes::new(py, b).into_any(),
-        Val::Arr(a) => {
-            let list = PyList::empty(py);
-            for x in a.iter() {
-                list.append(val_to_py(py, x)?)?;
-            }
-            list.into_any()
-        }
-        Val::Obj(o) => {
-            let dict = PyDict::new(py);
-            for (k, x) in o.iter() {
-                dict.set_item(val_to_py(py, k)?, val_to_py(py, x)?)?;
-            }
-            dict.into_any()
-        }
-    })
+    PyVal(v).into_pyobject(py)
 }
