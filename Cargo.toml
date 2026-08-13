@@ -11,7 +11,7 @@ name = "_jaq"
 crate-type = ["cdylib"]
 
 [dependencies]
-jaq-all = "0.2"
+jaq-all = "0.3"
 num-bigint = "0.4"
 pyo3 = { version = "0.29", features = [
     "extension-module",
