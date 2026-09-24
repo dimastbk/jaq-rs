@@ -49,6 +49,35 @@ f.run(items, vars={"context": "order"})
 Values can be any convertible Python value (like the jq CLI's `--argjson`).
 A missing or undeclared variable raises `ValueError`.
 
+`jaq.analyze()` answers what a program *reads*, from its parse tree alone,
+so it also works on programs that call filters jaq does not define:
+
+```python
+a = jaq.analyze('{id: $context.id, token: $secrets["api"]} | .id')
+a.reads_input      # False — `.id` sees the object on the left, not the input
+a.vars             # {'context': frozenset({'id'}), 'secrets': frozenset({'api'})}
+
+jaq.analyze("length").reads_input          # True — builtins run on the input
+jaq.analyze("$context | keys").vars        # {'context': None} — used whole
+```
+
+It is conservative: anything not provably input-free counts as reading the
+input (unknown calls, formats such as `@base64`, `{a}` shorthand, an `if`
+without `else`), and any use of a variable other than a literal key access
+reports the whole variable.
+
+`vars` lists only *free* variables — names bound by the program itself
+(`… as $x`, `reduce`/`foreach`, `def f($x):`) are excluded, and a `$name`
+inside a string literal or comment is not counted — so it is exactly what
+`compile()` has to declare:
+
+```python
+code = ".[] | select(.type == $context) | .n > $min"
+
+jaq.analyze(code).vars           # {'context': None, 'min': None}
+f = jaq.compile(code, vars=list(jaq.analyze(code).vars))
+```
+
 ### Exceptions
 
 ```text

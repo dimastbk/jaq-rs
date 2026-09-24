@@ -25,3 +25,11 @@ create_exception!(
     JaqError,
     "The filter raised an error at runtime."
 );
+
+/// Render loader/compiler reports into a single human-readable message.
+pub(crate) fn render(reports: Vec<jaq_all::load::FileReports>) -> String {
+    reports
+        .iter()
+        .map(|fr| jaq_all::load::FileReportsDisp::new(fr).to_string())
+        .collect()
+}
