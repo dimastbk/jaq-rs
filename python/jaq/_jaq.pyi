@@ -4,11 +4,13 @@ from collections.abc import Sequence
 from typing import Any, Literal, TypeAlias, final, overload
 
 __all__ = [
+    "Analysis",
     "CompileError",
     "ExecutionError",
     "Filter",
     "JaqError",
     "ParseError",
+    "analyze",
     "compile",
 ]
 
@@ -133,5 +135,49 @@ class Filter:
         vars: dict[str, _JsonValue] | None = None,
     ) -> str: ...
     def __repr__(self) -> str: ...
+
+@final
+class Analysis:
+    """What a jq filter program reads, found from its parse tree by analyze()."""
+
+    @property
+    def reads_input(self) -> bool:
+        """Whether the program can read the value it is applied to.
+
+        True not only for `.` and paths such as `.a`, but for anything
+        applied to the input implicitly: builtins (`length`, `not`),
+        formats (`@base64`), object shorthand (`{a}`), an `if` without
+        `else`, and any call the analysis does not know to be input-free.
+        """
+    @property
+    def vars(self) -> dict[str, frozenset[str] | None]:
+        """Every free variable, without the leading '$'.
+
+        Free means used but not bound by the program itself: names bound by
+        `as`, `reduce`/`foreach` or `def f($x):` are excluded, so the keys
+        are exactly what compile(vars=...) needs. Each name maps to the
+        literal keys accessed on it (`$x.a` and `$x["b"]` give {"a", "b"}),
+        or None if the variable is used in any other way (`$x`,
+        `$x | keys`, `$x[$k]`). A `$name` in a string literal or comment is
+        not a use.
+        """
+    def __repr__(self) -> str: ...
+
+def analyze(code: str) -> Analysis:
+    """Analyze a jq filter program without compiling it.
+
+    Works on the parse tree only, so a program calling a filter jaq does
+    not define can still be analyzed. The analysis is conservative: what
+    it cannot prove input-free counts as reading the input.
+
+    Args:
+        code: The jq filter program.
+
+    Returns:
+        The analysis.
+
+    Raises:
+        CompileError: If code cannot be lexed or parsed.
+    """
 
 def compile(code: str, vars: Sequence[str] | None = None) -> Filter: ...
